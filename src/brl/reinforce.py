@@ -3,14 +3,15 @@ import numpy as np
 
 class Reinforce():
 
-    def __init__(self, policy, gamma=0.99, learning_rate=1e-3):
+    def __init__(self, policy, gamma=0.99, learning_rate=1e-2):
         self.policy = policy
         self.gamma = gamma
 
-        self.optimizer = torch.optim.SGD(self.policy.parameters(), lr=learning_rate)
-        self.loss = 0
+        self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=learning_rate)
 
         self.memory = []
+
+        self.loss = 0
 
     def act(self, observation):
         return self.policy.act(observation)
@@ -26,11 +27,11 @@ class Reinforce():
         for t in reversed(range(len(reward_batch) - 1)):
             reward_batch[t] = reward_batch[t] + self.gamma * reward_batch[t + 1]
 
-        reward_batch = torch.nn.functional.normalize(reward_batch, dim=0)
+        reward_batch = (reward_batch - reward_batch.mean()) / (reward_batch.std() + 1e-12)
 
-        probability_batch = torch.nn.functional.softmax(self.policy(state_batch), dim=0)
+        log_prob = torch.nn.functional.log_softmax(self.policy(state_batch), dim=1).gather(dim=1, index=action_batch.unsqueeze(dim=1)).squeeze()
 
-        self.loss = torch.mean(-torch.log(probability_batch.gather(dim=1, index=action_batch.unsqueeze(dim=0))) * reward_batch)
+        self.loss = torch.sum(-log_prob * reward_batch)
 
         self.optimizer.zero_grad()
         self.loss.backward()
