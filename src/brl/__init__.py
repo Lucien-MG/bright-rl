@@ -1,2 +1,2 @@
-from . import reinforce
+from .reinforce import reinforce
 from . import dqn
