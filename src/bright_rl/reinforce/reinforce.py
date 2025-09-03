@@ -14,6 +14,13 @@ class Reinforce():
 
         self.memory = []
         self.episodes_in_memory = 0
+    
+    @torch.inference_mode()
+    def act(self, state):
+        state = torch.from_numpy(state)
+        probabilities = torch.nn.functional.softmax(self.policy(state), dim=0)
+        action = torch.multinomial(probabilities, num_samples=1).item()
+        return action
 
     def observe(self, observation, action, reward, next_state, terminated):
         self.memory.append((observation, action, reward, terminated))
